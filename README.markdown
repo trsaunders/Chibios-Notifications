@@ -9,7 +9,7 @@ Features
 * Many clients (Listeners) can listen to each server (Notifier)
 * Each client brings its own statically allocated memory
 * A client can take as long as it wants to handle its received data without impeeding other clients
-* Messages are past via the Chibios Mailbox API
+* Messages are passed via the Chibios Mailbox API
 
 Demo
 ----
