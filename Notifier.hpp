@@ -1,7 +1,8 @@
 #ifndef __NOTIFIER_HPP__
 #define __NOTIFIER_HPP__
 
-#include "ch.hpp"
+#include "ch.h"
+#include "hal.h"
 
 template <class MsgType> class NotifierMsg;
 template <class MsgType, int N> class Listener;
@@ -30,6 +31,7 @@ public:
 	Listener(Notifier<MsgType> *);
 	MsgType *get(void);
 	void release(MsgType *);
+	size_t available(void);
 };
 
 template <class MsgType> class Notifier {
@@ -59,6 +61,7 @@ public:
 	NotifierItem<MsgType> *notify(MsgType *, int &);
 	MsgType *get(void);
 	void release(MsgType *);
+	size_t available(void);
 };
 
 /* called from within system lock */
@@ -73,7 +76,7 @@ template <class MsgType> bool_t NotifierMsg<MsgType>::send(Mailbox *mailbox, Msg
 
 /* called from within system lock */
 template <class MsgType> bool_t NotifierMsg<MsgType>::dereference(void) {
-	return (--ref_count == 0) ? true : false;
+	return (ref_count-- <= 1) ? true : false;
 }
 
 template <class MsgType> void NotifierMsg<MsgType>::reset(void) {
@@ -121,6 +124,14 @@ template <class MsgType> MsgType *NotifierItem<MsgType>::get(void) {
 
 template <class MsgType> void NotifierItem<MsgType>::release(MsgType *d) {
 	source->release(d);
+}
+
+template <class MsgType> size_t NotifierItem<MsgType>::available(void) {
+	size_t count;
+	chSysLock();
+	count = chMBGetUsedCountI(mailbox);
+	chSysUnlock();
+	return count;
 }
 
 /*********************************
@@ -208,6 +219,10 @@ template <class MsgType, int N> MsgType *Listener<MsgType,N>::get(void) {
 
 template <class MsgType, int N> void Listener<MsgType,N>::release(MsgType *d) {
 	notifier.release(d);
+}
+
+template <class MsgType, int N> size_t Listener<MsgType,N>::available(void) {
+	return notifier.available();
 }
 
 #endif /* __NOTIFIER_HPP__ */
